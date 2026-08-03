@@ -7,9 +7,57 @@ llm_call.py — 统一的 z-ai CLI 调用封装
 """
 
 import json
+import os
+import shutil
 import subprocess
 import sys
 import re
+
+
+def _resolve_z_ai_cmd():
+    """
+    跨平台定位 z-ai CLI。
+
+    Windows 上 npm 全局安装生成的是 .cmd/.ps1 shim，
+    Python subprocess 无法直接执行，因此退回用 node 直接调用 cli.js。
+    返回可直接传给 subprocess.run 的命令列表。
+    """
+    exe = shutil.which("z-ai")
+    if exe and not exe.lower().endswith((".cmd", ".bat", ".ps1")):
+        return ["z-ai"]
+
+    candidates = []
+    if os.name == "nt":
+        candidates.append(
+            os.path.join(
+                os.environ.get("APPDATA", ""),
+                "npm",
+                "node_modules",
+                "z-ai-web-dev-sdk",
+                "dist",
+                "cli.js",
+            )
+        )
+        try:
+            root = subprocess.run(
+                ["npm", "root", "-g"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            ).stdout.strip()
+            if root:
+                candidates.append(
+                    os.path.join(root, "z-ai-web-dev-sdk", "dist", "cli.js")
+                )
+        except Exception:
+            pass
+
+    for cli in candidates:
+        if os.path.exists(cli):
+            node = shutil.which("node") or "node"
+            return [node, cli]
+
+    return ["z-ai"]
 
 
 def call_llm(system_prompt, user_prompt, temperature=0.8, timeout=120):
@@ -26,7 +74,8 @@ def call_llm(system_prompt, user_prompt, temperature=0.8, timeout=120):
         str: 模型回复的纯文本内容
     """
     cmd = [
-        "z-ai", "chat",
+        *_resolve_z_ai_cmd(),
+        "chat",
         "--system", system_prompt,
         "--prompt", user_prompt,
     ]
@@ -36,6 +85,8 @@ def call_llm(system_prompt, user_prompt, temperature=0.8, timeout=120):
             capture_output=True,
             text=True,
             timeout=timeout,
+            encoding="utf-8",
+            errors="replace",
         )
         if result.returncode != 0:
             return f"[调用失败] {result.stderr.strip()[:200]}"

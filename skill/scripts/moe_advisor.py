@@ -30,6 +30,7 @@ moe_advisor.py — 三国谋士 MoE（混合专家）多专家咨询系统
     python moe_advisor.py "我该不该接受竞品的合并邀约？"
     python moe_advisor.py "团队核心成员要离职怎么办？" --verbose
     python moe_advisor.py "如何预判对手定价策略" --experts guo_jia,zhou_yu
+    python moe_advisor.py --all "七位军师齐聚，此事如何决断？"
 """
 
 import sys
@@ -38,6 +39,28 @@ import json
 import argparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
+def _init_console_encoding():
+    """输出编码自适应：
+    - 直接运行在 cmd/PowerShell（代码页 936）时用 GBK，中文正常显示；
+    - 输出被管道捕获（如 opencode 子进程）时用 UTF-8，避免乱码。
+    """
+    try:
+        if sys.stdout.isatty():
+            enc = "gbk"
+        else:
+            enc = "utf-8"
+    except Exception:
+        enc = "gbk"
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding=enc, errors="replace")
+        except Exception:
+            pass
+
+
+_init_console_encoding()
 
 from personas import ALL_STRATEGISTS, ROUTING_MATRIX, list_strategists
 from llm_call import call_llm, call_llm_json
@@ -59,8 +82,9 @@ ROUTER_SYSTEM = """你是三国谋士 MoE 系统的路由器（Router）。
 7. 庞统(pang_tong) — 破局攻坚、激进战术、临场决断、速胜方案
 
 路由规则:
-- 简单明确的问题选 1 位专家即可
-- 复杂多面的问题选 2-3 位，覆盖不同视角
+- 默认选 3 位专家，覆盖不同维度视角（莫因问题"看似简单"就只选 1 位）
+- 除非问题极为单一（如"这个数字怎么算"），否则至少选 2 位
+- 复杂多面、多要素、家庭/团队/行程类决策，选 3 位，务必视角互补
 - 必须从不同维度选人，避免视角重叠（如不要同时选周瑜+庞统，二者都偏激进）
 - 优先选择"擅长领域"与问题最匹配的谋士
 
@@ -97,14 +121,41 @@ SYNTHESIZER_SYSTEM = """你是三国谋士 MoE 系统的综合器（Synthesizer�
 【分歧与取舍】（各谋士意见不一处，及你的综合判断）
 【风险提示】（最需警惕的1-2个风险）
 
+硬性约束:
+- 【各方献策摘要】只能汇总下方 user 消息中"实际提供原文"的谋士，一位都不能多、不能少
+- 严禁虚构、推测、脑补未提供原文的谋士意见；严禁出现"依路由分析推断""未呈现原文""推断"等字样
+- 若实际献策的谋士较少（如 1-3 位），摘要就只写这几位，格式上照常列出即可
+- 【分歧与取舍】同样只基于实际献策谋士之间或与问题现实的差异来写
+
 语言风格：端方凝练，有谋略文告的质感，但务必现代可读。"""
 
 
 # ============================================================
 # MoE 主流程
 # ============================================================
+SUMMON_ALL_PATTERNS = [
+    "七位", "七名", "全部", "所有", "全体", "全员", "齐聚",
+    "各位先生", "各位军师", "诸位先生", "诸位军师", "各位谋士",
+    "列位先生", "列位军师", "列位谋士", "列位",
+    "诸位", "军师们", "谋士们", "请七位", "让七位",
+]
+
+
+def _wants_all_strategists(question):
+    """检测用户是否希望召唤全部七位谋士"""
+    return any(p in question for p in SUMMON_ALL_PATTERNS)
+
+
 def route(question):
     """路由器：分析问题，选出合适的专家"""
+    # 用户显式召唤全部谋士时，跳过 LLM 路由，直接全员上阵
+    if _wants_all_strategists(question):
+        return {
+            "analysis": "（用户召唤全体谋士）",
+            "selected": list(ALL_STRATEGISTS.keys()),
+            "reason": "主公要求七位谋士齐聚共议",
+        }
+
     user_prompt = f"用户问题：{question}\n\n请分析此问题，选出最合适的1-3位谋士。只输出JSON。"
     result = call_llm_json(ROUTER_SYSTEM, user_prompt)
 
@@ -256,6 +307,7 @@ def main():
   python moe_advisor.py "我该不该接受竞品的合并邀约？"
   python moe_advisor.py "团队核心成员要离职怎么办？" --verbose
   python moe_advisor.py "如何预判对手定价" --experts guo_jia,zhou_yu
+  python moe_advisor.py --all "此事牵动全局，请七位军师共议"
   python moe_advisor.py --list
 """,
     )
@@ -263,7 +315,9 @@ def main():
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="显示各专家的完整献策过程")
     parser.add_argument("--experts", "-e", type=str,
-                        help="手动指定专家（逗号分隔），跳过路由")
+                        help="手动指定专家（逗号分隔），跳过路由；传 all 即七位齐聚")
+    parser.add_argument("--all", "-a", action="store_true",
+                        help="召唤全部七位谋士齐聚共议")
     parser.add_argument("--list", "-l", action="store_true",
                         help="列出所有可用谋士")
     args = parser.parse_args()
@@ -282,8 +336,13 @@ def main():
         sys.exit(1)
 
     force = None
-    if args.experts:
-        force = [e.strip() for e in args.experts.split(",") if e.strip() in ALL_STRATEGISTS]
+    if args.all:
+        force = list(ALL_STRATEGISTS.keys())
+    elif args.experts:
+        if args.experts.strip().lower() == "all":
+            force = list(ALL_STRATEGISTS.keys())
+        else:
+            force = [e.strip() for e in args.experts.split(",") if e.strip() in ALL_STRATEGISTS]
         if not force:
             print("[错误] 指定的专家均无效，请用 --list 查看")
             sys.exit(1)

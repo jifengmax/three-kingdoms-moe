@@ -1,6 +1,16 @@
 ---
 name: three-kingdoms-moe
+slug: three-kingdoms-moe
+version: 1.0.0
+displayName: 三国谋士 MoE
 description: 三国谋士 MoE 多专家献策系统。用户提出决策/战略/博弈类问题时，路由器从七位谋士（诸葛亮/贾诩/周瑜/郭嘉/司马懿/荀彧/庞统）中选出 1-3 位视角互补的专家，各以独立人设献策，再由综合器汇总成可执行方略。用于：战略规划、危机应对、团队管理、竞争博弈、人才决策、破局攻坚等需要多视角权衡的复杂决策场景。
+tags:
+  - 决策
+  - 多专家
+  - 三国
+  - 谋略
+  - moe
+license: MIT
 ---
 
 # three-kingdoms-moe
@@ -85,10 +95,13 @@ description: 三国谋士 MoE 多专家献策系统。用户提出决策/战略/
 
 ## How to invoke
 
+脚本绝对路径：`C:\Users\Administrator\.config\opencode\skills\three-kingdoms-moe\scripts\`
+（源仓库位置：`E:\作品\技能\three-kingdoms-moe-main\skill\scripts\`）
+
 ### 方式一：直接运行 MoE 脚本（推荐）
 
 ```bash
-python /home/z/my-project/skills/three-kingdoms-moe/scripts/moe_advisor.py "用户的问题"
+python "C:\Users\Administrator\.config\opencode\skills\three-kingdoms-moe\scripts\moe_advisor.py" "用户的问题"
 ```
 
 可选参数：
@@ -99,7 +112,7 @@ python /home/z/my-project/skills/three-kingdoms-moe/scripts/moe_advisor.py "用�
 ### 方式二：单谋士独立咨询
 
 ```bash
-python /home/z/my-project/skills/three-kingdoms-moe/scripts/strategist.py zhuge_liang "用户的问题"
+python "C:\Users\Administrator\.config\opencode\skills\three-kingdoms-moe\scripts\strategist.py" zhuge_liang "用户的问题"
 ```
 
 ### 方式三：在对话中直接调用
@@ -108,7 +121,7 @@ python /home/z/my-project/skills/three-kingdoms-moe/scripts/strategist.py zhuge_
 
 ```bash
 # 自动路由 + 多专家 + 综合方略
-python scripts/moe_advisor.py "用户的问题" --verbose
+python "C:\Users\Administrator\.config\opencode\skills\three-kingdoms-moe\scripts\moe_advisor.py" "用户的问题" --verbose
 ```
 
 ## 人设设计依据

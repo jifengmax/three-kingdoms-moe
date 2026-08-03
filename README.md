@@ -13,15 +13,6 @@
 - `skill/` — Skill 包（已发布到 SkillHub）
   - `scripts/` — 核心工具脚本（personas/moe_advisor/strategist/llm_call）
   - `references/` — 参考文档
-  - `docs/` — 工程文档
-  - `generators/` — 文档生成脚本
-- `generators/` — docx 生成脚本
-- `cli-tools/` — CLI 工具
-  - `skillhub/` — SkillHub CLI
-  - `clawhub/` — ClawHub CLI
-  - `z-ai-web-dev-sdk/` — z-ai SDK
-  - `agent-browser/` — agent-browser
-- `documents/` — 文档与截图
 
 ## 七位专家
 
@@ -43,7 +34,12 @@ python skill/scripts/moe_advisor.py "核心团队成员提出离职，我该怎�
 
 # 单谋士独立咨询
 python skill/scripts/strategist.py zhuge_liang "创业公司融资困难，坚持还是转型？"
+
+# 召唤全部七位谋士齐聚
+python skill/scripts/moe_advisor.py --all "此事牵动全局，请七位军师共议"
 ```
+
+> 依赖 `z-ai` CLI（z-ai-web-dev-sdk）；问题文本含「七位 / 列位军师 / 诸位 / 全员」等召唤词时也会自动七位齐聚。
 
 ## SkillHub 页面
 

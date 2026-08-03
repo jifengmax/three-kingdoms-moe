@@ -24,6 +24,28 @@ import os
 # 确保能 import 同目录模块
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+
+def _init_console_encoding():
+    """输出编码自适应：
+    - 直接运行在 cmd/PowerShell（代码页 936）时用 GBK，中文正常显示；
+    - 输出被管道捕获（如 opencode 子进程）时用 UTF-8，避免乱码。
+    """
+    try:
+        if sys.stdout.isatty():
+            enc = "gbk"
+        else:
+            enc = "utf-8"
+    except Exception:
+        enc = "gbk"
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding=enc, errors="replace")
+        except Exception:
+            pass
+
+
+_init_console_encoding()
+
 from personas import ALL_STRATEGISTS, list_strategists
 from llm_call import call_llm
 
