@@ -1,2 +1,54 @@
-# three-kingdoms-moe
-三国谋士MoE多专家献策系统 - 七位谋士独立工具 + MoE多专家综合系统（含CLI工具）
+# 三国谋士 MoE 多专家献策系统
+
+> 基于《三国演义》文学形象与《三国志》正史记载，将七位顶级谋士封装为各具性格的专家模型
+
+## 项目简介
+
+本工程将三国时期七位顶级谋士（诸葛亮、贾诩、周瑜、郭嘉、司马懿、荀彧、庞统）封装为各具性格的专家模型。当用户提出决策、战略、博弈类问题时，路由器智能匹配 1-3 位视角互补的谋士，各以独立人设献策，再由综合器去重补缺，形成可执行方略。
+
+采用真正的 **Mixture-of-Experts 架构**：每位谋士有独立的 system_prompt（性格内核、思维特征、说话风格），并行献策时保留个性与分歧，综合器负责去重、补缺、排序，最终输出结构化的三层方略（立即行动 / 短期部署 / 长期布局）。
+
+## 仓库结构
+
+- `skill/` — Skill 包（已发布到 SkillHub）
+  - `scripts/` — 核心工具脚本（personas/moe_advisor/strategist/llm_call）
+  - `references/` — 参考文档
+  - `docs/` — 工程文档
+  - `generators/` — 文档生成脚本
+- `generators/` — docx 生成脚本
+- `cli-tools/` — CLI 工具
+  - `skillhub/` — SkillHub CLI
+  - `clawhub/` — ClawHub CLI
+  - `z-ai-web-dev-sdk/` — z-ai SDK
+  - `agent-browser/` — agent-browser
+- `documents/` — 文档与截图
+
+## 七位专家
+
+| 谋士 | 定位 | 擅长 |
+|------|------|------|
+| 诸葛亮（卧龙） | 全能统帅·战略规划 | 长期战略、内政后勤、制度建设 |
+| 贾诩（毒士） | 生存大师·局势把控 | 危机生存、利益博弈、人性洞察 |
+| 周瑜（公瑾） | 大都督·儒将 | 果敢决断、以少胜多、团队凝聚 |
+| 郭嘉（奉孝） | 鬼才·预言家 | 心理分析、敌情预判、性格洞察 |
+| 司马懿（仲达） | 冢虎·隐忍 | 长期博弈、政变时机、权力斗争 |
+| 荀彧（文若） | 王佐之才 | 组织建设、人才识别、大义名分 |
+| 庞统（士元） | 凤雏·激进 | 破局攻坚、连环计策、速胜方案 |
+
+## 快速开始
+
+```bash
+# MoE 多专家综合咨询
+python skill/scripts/moe_advisor.py "核心团队成员提出离职，我该怎么办？"
+
+# 单谋士独立咨询
+python skill/scripts/strategist.py zhuge_liang "创业公司融资困难，坚持还是转型？"
+```
+
+## SkillHub 页面
+
+已发布到 SkillHub: https://skillhub.cn/skills/user_516d7c35/three-kingdoms-moe
+
+## 许可证
+
+MIT-0
